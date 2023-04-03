@@ -56,7 +56,7 @@ subtraction <- function(bulk,
                                                  training_matrix,
                                                  training_genes = rownames(training_matrix),
 
-                                                 sep)
+                                                 sep = sep)
         pre_auc <- starting_auc
 
       if(verbose){print(c('starting AUC', starting_auc))}
@@ -91,19 +91,24 @@ subtraction <- function(bulk,
                                                      data.frame(estimates),
                                                      40/(2**seq(0,20,1)),
                                                      specificity_weights_use,
-                                                     sep)
+                                                     sep = sep)
 
 
         bulk_deconv_target <- bulk_deconv_target[[1]]
         if(verbose){print(c('subtracted ', calc_bulk_auc_one_sample(bulk_deconv_target,
                                                                     sample_1,
                                                                     training_matrix,
-                                                                    training_genes = rownames(training_matrix))))}
+                                                                    training_genes = rownames(training_matrix),
+                                                                    sep = sep)))}
 
 
 
 
-        post_auc <- calc_bulk_auc_one_sample(bulk_deconv_target, sample_1, training_matrix, training_genes = rownames(training_matrix), sep )
+        post_auc <- calc_bulk_auc_one_sample(bulk_deconv_target,
+                                             sample_1,
+                                             training_matrix,
+                                             training_genes = rownames(training_matrix),
+                                             sep = sep)
 
         if(verbose){print(c(i, post_auc))}
 
@@ -242,7 +247,7 @@ get_best_LR_single_log <- function(bulk_vector,
                                         sample_name,
                                         training_matrix,
                                         training_genes = rownames(training_matrix),
-                                        sep)
+                                        sep = sep)
     #print(auc_add)
     return(auc_add)
   })
@@ -255,8 +260,3 @@ get_best_LR_single_log <- function(bulk_vector,
   return(list(bulk_deconv_list[best_LR][[1]], LR_list[best_LR])) ## return a matrix with the highest AUC
   #return(bulk_deconv_list)
 }
-
-
-
-
-

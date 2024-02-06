@@ -1,8 +1,3 @@
-#   Install Package:           'Cmd + Shift + B'
-#   Check Package:             'Cmd + Shift + E'
-#   Test Package:              'Cmd + Shift + T'
-
-
 #' Function to iteratively subtract across samples
 #'
 #' @param bulk a vector of gene expression in the sample (with named entries)

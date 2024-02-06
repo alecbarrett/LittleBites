@@ -171,7 +171,7 @@ subtract_single_log <- function(learning_rate,
 
   proportions_vector <- proportions_vector * anti_identity_vector
 
-  subtraction_vector <- (learning_rate * ( as.matrix(sc.log) %*%  as.matrix(proportions_vector)))
+  subtraction_vector <- (learning_rate * (as.matrix(sc.log) %*%  as.matrix(proportions_vector)))
 
   bulk_deconv <- log(bulk) - subtraction_vector
   bulk_deconv <- exp(bulk_deconv)

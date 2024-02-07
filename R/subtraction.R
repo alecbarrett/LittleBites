@@ -242,7 +242,7 @@ get_best_LR_single_log <- function(bulk_vector,
     return(auc_add)
   })
   best_LR <- which(unlist(auc_list) == max(unlist(auc_list)), arr.ind = TRUE)
-  print(best_LR)
+  #print(best_LR)
   if(1 %in% best_LR){
     best_LR <- 1
   }

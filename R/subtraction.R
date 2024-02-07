@@ -109,7 +109,7 @@ subtraction <- function(bulk,
 
 
         if(post_auc == pre_auc){
-          print(c('total AUC percent improvement -->',(post_auc - starting_auc)*100))
+          if(verbose){print(c('total AUC percent improvement -->',(post_auc - starting_auc)*100))}
           bulk_deconv[,sample_1] <- bulk_deconv_target
 
           reference_tmp <- reference[,cells_in_use]
@@ -119,20 +119,15 @@ subtraction <- function(bulk,
                              b=log1p(bulk_deconv_target * specificity_weights ) )$x
           names(estimates) <- cells_in_use
           estimates <- estimates/sum(estimates)
-          print('final proportion estimates:')
-          print(estimates)
+          if(verbose){print('final proportion estimates:')}
+          if(verbose){print(estimates)}
 
           break}
         pre_auc <- post_auc
-
-        cat('\n\n\n\n\n\n\n\n\n')
-
-
       }
-
     }
   }
-
+  print('done')
   return(bulk_deconv)
 }
 

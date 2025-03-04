@@ -2,7 +2,7 @@
 #'
 #' @param bulk a vector of gene expression in the sample (with named entries)
 #' @param reference a genes x cell-types matrix of gene expression values from the single cell reference
-#' @param sep a character value to split the cell type from the replicate number in the sample name (assumed structure is cell-sep-number)
+#' @param sample_name_separator a character value to split the cell type from the replicate number in the sample name (assumed structure is cell-sample_name_separator-number)
 #' @param cell_types_matrix a samples x cell-types matrix describing the target and contaminant cell types to estimate per sample
 #' @param training_matrix a genes x cell-types ground truth matrix
 #' @param specificity_weights a vector of gene level weights calculated using the specificity score from the single cell reference
@@ -18,7 +18,7 @@
 
 subtraction <- function(bulk,
                         reference,
-                        sep = 'r',
+                        sample_name_separator = 'r',
                         cell_types_matrix,
                         training_matrix,
                         specificity_weights,
@@ -26,16 +26,16 @@ subtraction <- function(bulk,
                         max_iterations = 100,
                         verbose = T){
 
-  if(sep == ''){stop('function requires a separator')}
+  if(sample_name_separator == ''){stop('function requires a separator')}
 
   bulk_deconv <- bulk
 
   samples <- colnames(bulk)
 
-  for(sample_1 in samples){
-    if(verbose){print(sample_1)}
+  for(bulk_sample in samples){
+    if(verbose){print(bulk_sample)}
 
-    cells_in_use <- cell_types_matrix[sample_1,] |> unlist()
+    cells_in_use <- cell_types_matrix[bulk_sample,] |> unlist()
 
     cell <- cells_in_use[1]
     contaminant_tissues <- cells_in_use[2:length(cells_in_use)]
@@ -44,14 +44,14 @@ subtraction <- function(bulk,
 
       if(i==0){
 
-        bulk_deconv_target <- bulk[,sample_1] ## some steps required a dataframe
+        bulk_deconv_target <- bulk[,bulk_sample] ## some steps required a dataframe
         names(bulk_deconv_target) <- rownames(bulk)
         starting_auc <- calc_bulk_auc_one_sample(bulk_deconv_target,
-                                                 sample_1,
+                                                 bulk_sample,
                                                  training_matrix,
                                                  training_genes = rownames(training_matrix),
 
-                                                 sep = sep)
+                                                 sample_name_separator = sample_name_separator)
         pre_auc <- starting_auc
 
       if(verbose){print(c('starting AUC', starting_auc))}
@@ -61,56 +61,62 @@ subtraction <- function(bulk,
       else{
         if(verbose){print(c('iteration',i))}
 
+
+        ## subset reference to just cells being used for this bulk sample
         reference_tmp <- reference[,cells_in_use]
+        ## normalize reference expression to the bulk sample
         reference_tmp <- sweep(reference_tmp, 2, colSums(reference_tmp), '/')
         reference_tmp <- reference_tmp * sum(bulk_deconv_target)
+        ### generate estimates of the sample composition
         estimates <- nnls::nnls( A = log1p(as.matrix(reference_tmp * specificity_weights )),
                            b = log1p(bulk_deconv_target * specificity_weights ) )$x
         names(estimates) <- cells_in_use
+
+        ## normalize so sample estimates sum to 1
         estimates <- estimates/sum(estimates)
         if(verbose){print(estimates)}
 
-
+        ### subset weights to remove any genes not included in the bulk sample or reference
         specificity_weights_use <- specificity_weights[rownames(reference_tmp)]
 
-
+        ## generate a vector that will mask out the "identity" cell type from subtraction steps by setting it to 0
         anti_identity_vector <- (names(estimates) %in% contaminant_tissues) * 1
 
-        bulk_deconv_target <- get_best_LR_single_log(bulk_deconv_target,
-                                                     sample_1,
-                                                     reference_tmp,
-                                                     cells_in_use,
-                                                     training_matrix,
+        bulk_deconv_target <- get_best_LR_single_log(bulk_vector = bulk_deconv_target,
+                                                     sample_name = bulk_sample,
+                                                     pseudobulk = reference_tmp,
+                                                     cells_in_use = cells_in_use,
+                                                     training_matrix = training_matrix,
                                                      training_genes = rownames(training_matrix),
-                                                     anti_identity_vector,
-                                                     data.frame(estimates),
-                                                     40/(2**seq(0,20,1)),
-                                                     specificity_weights_use,
-                                                     sep = sep)
+                                                     anti_identity_vector = anti_identity_vector,
+                                                     proportions_table = data.frame(estimates),
+                                                     LR_list = learning_rate,
+                                                     specificity_score = specificity_weights_use,
+                                                     sample_name_separator = sample_name_separator)
 
 
         bulk_deconv_target <- bulk_deconv_target[[1]]
         if(verbose){print(c('subtracted ', calc_bulk_auc_one_sample(bulk_deconv_target,
-                                                                    sample_1,
+                                                                    bulk_sample,
                                                                     training_matrix,
                                                                     training_genes = rownames(training_matrix),
-                                                                    sep = sep)))}
+                                                                    sample_name_separator = sample_name_separator)))}
 
 
 
 
         post_auc <- calc_bulk_auc_one_sample(bulk_deconv_target,
-                                             sample_1,
+                                             bulk_sample,
                                              training_matrix,
                                              training_genes = rownames(training_matrix),
-                                             sep = sep)
+                                             sample_name_separator = sample_name_separator)
 
         if(verbose){print(c(i, post_auc))}
 
 
         if(post_auc == pre_auc){
           if(verbose){print(c('total AUC percent improvement -->',(post_auc - starting_auc)*100))}
-          bulk_deconv[,sample_1] <- bulk_deconv_target
+          bulk_deconv[,bulk_sample] <- bulk_deconv_target
 
           reference_tmp <- reference[,cells_in_use]
           reference_tmp <- sweep(reference_tmp, 2, colSums(reference_tmp), '/')
@@ -186,7 +192,7 @@ subtract_single_log <- function(learning_rate,
 #' @param proportions_table a table of estimated proportions for the bulk sample (with entries named for the cell-types)
 #' @param LR_list list of values to use as the learning rates: ex: 1/(2**seq(0,10,1)) returns a list of 1, 1/2, 1/4, 1/8, etc...
 #' @param specificity_score a vector of gene level weights calculated using the specificity score from the single cell reference
-#' @param sep a character value to split the cell type from the replicate number in the sample name (assumed structure is cell-sep-number)
+#' @param sample_name_separator a character value to split the cell type from the replicate number in the sample name (assumed structure is cell-sample_name_separator-number)
 #'
 #' @return a vector of gene expression values, named by the genes
 #'
@@ -202,7 +208,7 @@ get_best_LR_single_log <- function(bulk_vector,
                                    proportions_table,
                                    LR_list,
                                    specificity_score,
-                                   sep = 'r'){
+                                   sample_name_separator = 'r'){
 
   # take a list of learning rates, and find the best one as defined by the one with the highest AUC value
   ## bulk = vector of gene values for a single sample
@@ -237,7 +243,7 @@ get_best_LR_single_log <- function(bulk_vector,
                                         sample_name,
                                         training_matrix,
                                         training_genes = rownames(training_matrix),
-                                        sep = sep)
+                                        sample_name_separator = sample_name_separator)
     #print(auc_add)
     return(auc_add)
   })

@@ -51,7 +51,7 @@ subtraction <- function(bulk,
                                                  training_matrix,
                                                  training_genes = rownames(training_matrix),
 
-                                                 sample_name_separator = sample_name_separator)
+                                                 sep = sample_name_separator)
         pre_auc <- starting_auc
 
       if(verbose){print(c('starting AUC', starting_auc))}

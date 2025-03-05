@@ -26,11 +26,61 @@ subtraction <- function(bulk,
                         max_iterations = 100,
                         verbose = T){
 
-  if(sample_name_separator == ''){stop('function requires a separator')}
+  if(sample_name_separator == ''){
+    stop('function requires a separator')
+  }
+
+  if(!is.numeric(bulk)){
+    stop("'bulk' must be a numeric matrix or dataframe")
+  }
+  if(is.null(rownames(bulk)) || is.null(colnames(bulk))){
+    stop("'bulk' must have rownames and column names.")
+  }
+
+  if(!is.numeric(reference)){
+    stop("'reference' must be a numeric matrix or datafame")
+  }
+  if(is.null(rownames(reference)) || is.null(colnames(reference))){
+    stop("'reference' must have row (genes) and column (cell types) names.")
+  }
+  if(!is.numeric(training_matrix)){
+    stop("'training_matrix' must be a numeric matrix or datafame")
+  }
+  if(is.null(rownames(training_matrix)) || is.null(colnames(training_matrix))){
+    stop("'training_matrix' must have row (genes) and column (cell types) names.")
+  }
+
+  if(is.null(names(specificity_weights))){
+    stop("'specificity_weights must be a named vector'")
+  }
+
+  if (!is.numeric(learning_rate)) {
+    stop("'learning_rate' must be a numeric vector.")
+  }
+
+  if(!is.numeric(max_iterations) || max_iterations <= 0){
+    stop("'max_iterations' must be a number greater than 0")
+  }
+
 
   bulk_deconv <- bulk
 
   samples <- colnames(bulk)
+
+  ### checking if the separator is in every column name
+  if(!all(grepl(sample_name_separator, samples))){
+    stop(paste("every sample name must contain the separator value,",
+               "this code presumes multiple replicates per cell type,",
+               "if there are any single replicates in the dataset that do not have the separator value,",
+               "append the value to the end of that column name and rerun"))
+  }
+
+  if(any(stringr::str_count(samples, sample_name_separator) > 1)){
+    stop("'sample_name_separator' should only appear in the sample name once to avoid errors in downstream code")
+  }
+
+
+
 
   for(bulk_sample in samples){
     if(verbose){print(bulk_sample)}
@@ -54,7 +104,7 @@ subtraction <- function(bulk,
                                                  sep = sample_name_separator)
         pre_auc <- starting_auc
 
-      if(verbose){print(c('starting AUC', starting_auc))}
+        if(verbose){print(c('starting AUC', starting_auc))}
       }
 
 
@@ -69,7 +119,7 @@ subtraction <- function(bulk,
         reference_tmp <- reference_tmp * sum(bulk_deconv_target)
         ### generate estimates of the sample composition
         estimates <- nnls::nnls( A = log1p(as.matrix(reference_tmp * specificity_weights )),
-                           b = log1p(bulk_deconv_target * specificity_weights ) )$x
+                                 b = log1p(bulk_deconv_target * specificity_weights ) )$x
         names(estimates) <- cells_in_use
 
         ## normalize so sample estimates sum to 1
@@ -122,7 +172,7 @@ subtraction <- function(bulk,
           reference_tmp <- sweep(reference_tmp, 2, colSums(reference_tmp), '/')
           reference_tmp <- reference_tmp * sum(bulk_deconv_target)
           estimates <- nnls::nnls( A=log1p(as.matrix(reference_tmp * specificity_weights )),
-                             b=log1p(bulk_deconv_target * specificity_weights ) )$x
+                                   b=log1p(bulk_deconv_target * specificity_weights ) )$x
           names(estimates) <- cells_in_use
           estimates <- estimates/sum(estimates)
           if(verbose){print('final proportion estimates:')}

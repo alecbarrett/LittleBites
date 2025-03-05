@@ -100,7 +100,7 @@ subtraction <- function(bulk,
                                                                     bulk_sample,
                                                                     training_matrix,
                                                                     training_genes = rownames(training_matrix),
-                                                                    sample_name_separator = sample_name_separator)))}
+                                                                    sep = sample_name_separator)))}
 
 
 
@@ -256,3 +256,4 @@ get_best_LR_single_log <- function(bulk_vector,
   return(list(bulk_deconv_list[best_LR][[1]], LR_list[best_LR])) ## return a matrix with the highest AUC
   #return(bulk_deconv_list)
 }
+

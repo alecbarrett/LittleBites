@@ -31,3 +31,8 @@ As an example, in [this paper currently in review](https://www.biorxiv.org/conte
 <img width="1684" alt="AUCPR values for various deconvolution methods using neuron and generic markers" src="https://github.com/user-attachments/assets/0d6f347c-2b06-4f82-a27c-cabd2f1a8633" />
 
 
+# Vignette
+
+The Vignette can be loaded in R by installing LittleBites and then running `browseVignettes("LittleBites")`
+
+You can also view the vignette [here](https://github.com/alecbarrett/LittleBites/blob/main/Vignettes/Vignette.html)

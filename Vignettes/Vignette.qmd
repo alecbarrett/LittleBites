@@ -1,10 +1,12 @@
 ---
-title: "Subtraction_vignette"
+title: "Subtraction Vignette"
 author: "Alec Barrett"
-format: html
-editor: visual
-execute: 
-  warning: false
+date: "`r Sys.Date()`"
+output: html_document
+vignette: >
+  %\VignetteIndexEntry{Subtraction Vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 # LittleBites Subtraction Vignette

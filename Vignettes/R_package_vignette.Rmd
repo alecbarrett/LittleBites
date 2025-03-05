@@ -1,0 +1,184 @@
+---
+title: "Subtraction Vignette"
+author: "Alec Barrett"
+date: "2025-03-05"
+output: html_document
+vignette: >
+  %\VignetteIndexEntry{Subtraction Vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# LittleBites Subtraction Vignette
+
+Load in libraries:
+
+```{r}
+library(stringr)
+library(LittleBites)
+library(bayestestR)
+library(tibble)
+library(purrr)
+```
+
+
+Load in the Vignette dataset. These are subsets of the data used in the CeNGEN group paper currently on BioRxiv. Full datasets are downloadable from cengen.org.
+
+```{r}
+bulk <- read.table(system.file("extdata", "Bulk_data_5k.tsv", package = "LittleBites"))
+sc <- read.table(system.file("extdata", "singleCell_reference_5k.tsv", package = "LittleBites"))
+```
+
+Load ground truth expression data:
+```{r}
+gt_matrix <- read.table(system.file("extdata", "ubituiqtous_and_nonNeuronal_gt_genes_matrix_042222.tsv", package = "LittleBites"))
+train_test <- readRDS(system.file("extdata", "ubituiqtous_and_nonNeuronal_gt_genes_split_042222.rds", package = "LittleBites"))
+gt_train <- gt_matrix[train_test$training_genes,]
+gt_test <- gt_matrix[train_test$testing_genes,]
+```
+
+## Calculate Specificity Scores from the Single Cell Reference
+
+In general, this approach tries to be quite conservative on which genes to subtract out and how much to subtract. One way to guide this process is to give a gene-level weight based on some metric of how much subtraction should be done at each step.
+
+Here we presume that genes expressed in only 1 cell type are free-game to subtract out, while genes expressed in increasing numbers of cell types should be subtracted with more caution. Thus, we can use a tissue specificity score to generate a 0 to 1 weight for each gene, where a score close to 1 indicates effectively perfect specificity (only in intestines, for instance), while a score close to 0 indicates ubiquitous expression, and scores in between indicate that the gene is expressed in some smaller proportion of cell types.
+
+I use the Spm measure here because it is quite sensitive to genes being expressed in even 2 tissue types, and scores fall in value quite quickly, resulting in a more conservative subtraction with less risk of over-fitting.
+
+
+```{r, warning = FALSE}
+cells <- colnames(sc) |> unique() |> sort()
+specificity <- apply(sc |> log1p(), 1, LittleBites::Spm)
+```
+
+Curate a List of Potential Contaminant Cell Types to Remove
+
+In this case, I remove only non-neuronal contaminants, as neuronal profiles are generally too similar and can produce major problems during subtraction.
+
+
+```{r}
+contaminants <- c('Excretory', 'Glia', 'Hypodermis', 'Intestine', 'Muscle_mesoderm', 'Reproductive')
+neurons <- cells[!cells %in% contaminants]
+```
+
+Make a Sample x Cell Types Matrix
+
+The first column should be the target cell type, and the remaining columns should represent putative contaminants. This matrix will tell the algorithm:
+
+Which cell type we're targeting to aid in modeling.
+Which profiles are designated for removal.
+
+```{r}
+cell_types_matrix <- sapply(colnames(bulk), function(sample_) {
+  cell <- str_split_fixed(sample_, 'r', 2)[,1]
+  return(c(cell, contaminants))
+}) |> t()
+cell_types_matrix
+```
+
+Run Subtraction!
+
+
+
+```{r}
+bulk_subtracted <- subtraction(
+  bulk = bulk,
+  reference = sc,
+  cell_types_matrix = cell_types_matrix,
+  training_matrix = gt_train,
+  specificity_weights = specificity,
+  verbose = FALSE
+)
+```
+
+
+Plotting the Effects
+
+Here we'll calculate AUROC scores for each sample individually using the training and test genes to see how the subtraction performed.
+
+First, the Training Genes:
+
+
+```{r}
+per_sample_bulk_diags <- lapply(colnames(bulk), function(sample_) {
+  cell_type <- str_split_fixed(sample_, 'r', 2)[,1]
+  prediction <- bulk[train_test$training_genes, sample_]
+  case <- gt_train[,cell_type]
+  diags <- tibble(
+    threshold = c(0, 2**seq(-17, 12, 0.05)),
+    TPR = map_dbl(threshold, ~get_tpr(prediction, case, .x)),
+    FPR = map_dbl(threshold, ~get_fpr(prediction, case, .x)),
+    counts = "raw"
+  )
+  auroc <- bayestestR::auc(diags$FPR, diags$TPR)
+  return(auroc)
+}) |> unlist()
+names(per_sample_bulk_diags) <- colnames(bulk)
+
+per_sample_sub_diags <- lapply(colnames(bulk_subtracted), function(sample_) {
+  cell_type <- str_split_fixed(sample_, 'r', 2)[,1]
+  prediction <- bulk_subtracted[train_test$training_genes, sample_]
+  case <- gt_train[,cell_type]
+  diags <- tibble(
+    threshold = c(0, 2**seq(-17, 12, 0.05)),
+    TPR = map_dbl(threshold, ~get_tpr(prediction, case, .x)),
+    FPR = map_dbl(threshold, ~get_fpr(prediction, case, .x)),
+    counts = "raw"
+  )
+  auroc <- bayestestR::auc(diags$FPR, diags$TPR)
+  return(auroc)
+}) |> unlist()
+names(per_sample_sub_diags) <- colnames(bulk_subtracted)
+
+plot(per_sample_bulk_diags,
+     per_sample_sub_diags,
+     xlim = c(.7, 1), ylim = c(.7, 1),
+     xlab = 'unaltered bulk training AUROC',
+     ylab = 'subtracted bulk training AUROC')
+abline(0, 1)
+```
+
+Next, the Reserved Testing Genes:
+
+```{r}
+per_sample_bulk_diags_test <- lapply(colnames(bulk), function(sample_) {
+  cell_type <- str_split_fixed(sample_, 'r', 2)[,1]
+  prediction <- bulk[train_test$testing_genes, sample_]
+  case <- gt_test[,cell_type]
+  diags <- tibble(
+    threshold = c(0, 2**seq(-17, 12, 0.05)),
+    TPR = map_dbl(threshold, ~get_tpr(prediction, case, .x)),
+    FPR = map_dbl(threshold, ~get_fpr(prediction, case, .x)),
+    counts = "raw"
+  )
+  auroc <- bayestestR::auc(diags$FPR, diags$TPR)
+  return(auroc)
+}) |> unlist()
+names(per_sample_bulk_diags_test) <- colnames(bulk)
+
+per_sample_sub_diags_test <- lapply(colnames(bulk_subtracted), function(sample_) {
+  cell_type <- str_split_fixed(sample_, 'r', 2)[,1]
+  prediction <- bulk_subtracted[train_test$testing_genes, sample_]
+  case <- gt_test[,cell_type]
+  diags <- tibble(
+    threshold = c(0, 2**seq(-17, 12, 0.05)),
+    TPR = map_dbl(threshold, ~get_tpr(prediction, case, .x)),
+    FPR = map_dbl(threshold, ~get_fpr(prediction, case, .x)),
+    counts = "raw"
+  )
+  auroc <- bayestestR::auc(diags$FPR, diags$TPR)
+  return(auroc)
+}) |> unlist()
+names(per_sample_sub_diags_test) <- colnames(bulk_subtracted)
+
+plot(per_sample_bulk_diags_test,
+     per_sample_sub_diags_test,
+     xlim = c(.7, 1), ylim = c(.7, 1),
+     xlab = 'unaltered bulk testing AUROC',
+     ylab = 'subtracted bulk testing AUROC')
+abline(0, 1)
+```
+

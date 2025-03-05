@@ -1,2 +1,6 @@
 ^vignettes/Vignette\.html$
 ^vignettes/Vignette_files$
+^.*\.Rproj$
+^\.Rproj\.user$
+^Data$
+^Vignettes/Untitled\.Rmd$

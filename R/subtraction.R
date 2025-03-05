@@ -294,16 +294,15 @@ get_best_LR_single_log <- function(bulk_vector,
                                         training_matrix,
                                         training_genes = rownames(training_matrix),
                                         sep = sample_name_separator)
-    #print(auc_add)
     return(auc_add)
   })
   best_LR <- which(unlist(auc_list) == max(unlist(auc_list)), arr.ind = TRUE)
-  #print(best_LR)
+
   if(1 %in% best_LR){
     best_LR <- 1
   }
   else { best_LR <- utils::tail(best_LR, n = 1) }
   return(list(bulk_deconv_list[best_LR][[1]], LR_list[best_LR])) ## return a matrix with the highest AUC
-  #return(bulk_deconv_list)
+
 }
 

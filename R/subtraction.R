@@ -109,7 +109,7 @@ subtraction <- function(bulk,
                                              bulk_sample,
                                              training_matrix,
                                              training_genes = rownames(training_matrix),
-                                             sample_name_separator = sample_name_separator)
+                                             sep = sample_name_separator)
 
         if(verbose){print(c(i, post_auc))}
 
@@ -243,7 +243,7 @@ get_best_LR_single_log <- function(bulk_vector,
                                         sample_name,
                                         training_matrix,
                                         training_genes = rownames(training_matrix),
-                                        sample_name_separator = sample_name_separator)
+                                        sep = sample_name_separator)
     #print(auc_add)
     return(auc_add)
   })

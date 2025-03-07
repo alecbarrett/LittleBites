@@ -30,20 +30,20 @@ subtraction <- function(bulk,
     stop('function requires a separator')
   }
 
-  if(!is.numeric(bulk)){
+  if(!all(sapply(bulk, is.numeric))){
     stop("'bulk' must be a numeric matrix or dataframe")
   }
   if(is.null(rownames(bulk)) || is.null(colnames(bulk))){
     stop("'bulk' must have rownames and column names.")
   }
 
-  if(!is.numeric(reference)){
+  if(!all(sapply(reference, is.numeric))){
     stop("'reference' must be a numeric matrix or datafame")
   }
   if(is.null(rownames(reference)) || is.null(colnames(reference))){
     stop("'reference' must have row (genes) and column (cell types) names.")
   }
-  if(!is.numeric(training_matrix)){
+  if(!all(sapply(training_matrix, is.numeric))){
     stop("'training_matrix' must be a numeric matrix or datafame")
   }
   if(is.null(rownames(training_matrix)) || is.null(colnames(training_matrix))){
@@ -61,6 +61,7 @@ subtraction <- function(bulk,
   if(!is.numeric(max_iterations) || max_iterations <= 0){
     stop("'max_iterations' must be a number greater than 0")
   }
+
 
 
   bulk_deconv <- bulk
@@ -93,15 +94,14 @@ subtraction <- function(bulk,
     for(i in seq(0,max_iterations,1)){
 
       if(i==0){
-
         bulk_deconv_target <- bulk[,bulk_sample] ## some steps required a dataframe
         names(bulk_deconv_target) <- rownames(bulk)
         starting_auc <- calc_bulk_auc_one_sample(bulk_deconv_target,
                                                  bulk_sample,
                                                  training_matrix,
                                                  training_genes = rownames(training_matrix),
-
                                                  sep = sample_name_separator)
+
         pre_auc <- starting_auc
 
         if(verbose){print(c('starting AUC', starting_auc))}
@@ -183,7 +183,6 @@ subtraction <- function(bulk,
       }
     }
   }
-  print('done')
   return(bulk_deconv)
 }
 

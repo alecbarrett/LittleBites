@@ -1,9 +1,6 @@
 
-
-
 #' Calculates specificity scores for a gene (from a genes x cell-type matrix) using SPM method
 #' as described in Xiao SJ, Zhang C, Zou Q, Ji ZL. TiSGeD: a database for tissue-specific genes. Bioinformatics. 2010 May 1;26(9):1273-5. doi: 10.1093/bioinformatics/btq109. Epub 2010 Mar 11. PMID: 20223836; PMCID: PMC2859128.
-#' code adapted from Kryuchkova-Mostacci N, Robinson-Rechavi M. A benchmark of gene expression tissue-specificity metrics. Brief Bioinform. 2017 Mar 1;18(2):205-214. doi: 10.1093/bib/bbw008. PMID: 26891983; PMCID: PMC5444245.
 #'
 #' @param data a vector of gene expression values across cell-types
 #'
@@ -11,25 +8,24 @@
 #'
 #' @export
 #'
-Spm <- function(data){
-  if(all(!is.na(data)))
-  {
-    if(min(data, na.rm=TRUE) >= 0)
-    {
-      if(sum(data) !=0)
-      {
-        spm <- data^2/(data%*%data)
-        res <- max(spm)
-      } else {
-        res <- 0
-      }
-    } else {
-      res <- NA
-    }
-  } else {
-    res <- NA
+max_spm <- function(data){
+
+  if(any(is.na(data))){
+    stop('data cannot contain NA values')
   }
-  return(res)
+
+  if(any(data < 0)){
+    stop('data cannot contain negative numbers')
+  }
+
+  if(sum(data) == 0){
+    max_spm = 0
+  } else {
+    spm <- data^2/as.numeric(data%*%data)
+    max_spm <- max(spm)
+  }
+
+  return(max_spm)
 }
 
 
@@ -97,7 +93,7 @@ calc_specificity_weights <- function(dataset, method = 'SPM', transform = 'log')
   }
 
   if(method == 'SPM'){
-    weights <- pbapply::pbapply(dataset, 1, Spm)
+    weights <- pbapply::pbapply(dataset, 1, max_spm)
   }
   if(method == 'Hg'){
     weights <- pbapply::pbapply(dataset, 1, Hg)

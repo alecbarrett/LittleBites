@@ -5,11 +5,11 @@ Version: 0.1.2
 Author: Alec Barrett
 Maintainer: Aec Barrett <alecpbarrett@gmail.com>
 Description: 
-    An iterative subtraction tool for cleaning bulk RNA-seq counts data
-License: GPL-3
+    An iterative subtraction tool for cleaning bulk RNA-seq counts data.
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.0
+RoxygenNote: 7.2.3
 Imports: 
     bayestestR,
     nnls,
@@ -17,10 +17,11 @@ Imports:
     purrr,
     stringr,
     tibble,
+    dplyr,
     utils
 Suggests: 
     knitr,
     rmarkdown,
-    quarto,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
+Config/testthat/edition: 3

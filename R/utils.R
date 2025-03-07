@@ -1,5 +1,5 @@
 
-
+utils::globalVariables(c("threshold"))
 
 #' Calculates TPR when given a prediction matrix and a ground truth matrix
 #'
@@ -16,6 +16,9 @@ get_tpr <- function(expression,
                     threshold){
   # True Positive Rate, aka sensitivity, aka recall
   # TPR = TP/(TP+FN) = TP/P
+  if(length(expression) != length(truth)){
+    stop('expression and truth vectors must be the same length')
+  }
   bin <- expression >= threshold
 
   return(sum(bin * truth)/sum(truth))
@@ -37,6 +40,10 @@ get_fpr <- function(expression,
                     threshold){
   # False Positive Rate
   # FPR = FP/(FP+TN) = FP/N
+  if(length(expression) != length(truth)){
+    stop('expression and truth vectors must be the same length')
+  }
+
   bin <- expression >= threshold
 
   return(sum(bin * (!truth))/sum(!(truth)))
@@ -58,6 +65,10 @@ get_fdr <- function(expression,
                     threshold){
   # False Discovery Rate
   # FDR = FP/(FP+TP) = 1 - PPV
+  if(length(expression) != length(truth)){
+    stop('expression and truth vectors must be the same length')
+  }
+
   bin <- expression >= threshold
   fdr <- sum(bin * (!truth))/(sum(bin*(!truth)) + sum(bin*truth))
 

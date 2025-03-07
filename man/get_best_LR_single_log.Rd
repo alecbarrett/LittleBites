@@ -15,7 +15,7 @@ get_best_LR_single_log(
   proportions_table,
   LR_list,
   specificity_score,
-  sep = "r"
+  sample_name_separator = "r"
 )
 }
 \arguments{
@@ -39,7 +39,7 @@ get_best_LR_single_log(
 
 \item{specificity_score}{a vector of gene level weights calculated using the specificity score from the single cell reference}
 
-\item{sep}{a character value to split the cell type from the replicate number in the sample name (assumed structure is cell-sep-number)}
+\item{sample_name_separator}{a character value to split the cell type from the replicate number in the sample name (assumed structure is cell-sample_name_separator-number)}
 }
 \value{
 a vector of gene expression values, named by the genes

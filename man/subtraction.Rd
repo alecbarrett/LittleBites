@@ -7,7 +7,7 @@
 subtraction(
   bulk,
   reference,
-  sep = "r",
+  sample_name_separator = "r",
   cell_types_matrix,
   training_matrix,
   specificity_weights,
@@ -21,7 +21,7 @@ subtraction(
 
 \item{reference}{a genes x cell-types matrix of gene expression values from the single cell reference}
 
-\item{sep}{a character value to split the cell type from the replicate number in the sample name (assumed structure is cell-sep-number)}
+\item{sample_name_separator}{a character value to split the cell type from the replicate number in the sample name (assumed structure is cell-sample_name_separator-number)}
 
 \item{cell_types_matrix}{a samples x cell-types matrix describing the target and contaminant cell types to estimate per sample}
 

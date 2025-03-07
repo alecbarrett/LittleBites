@@ -51,7 +51,7 @@ I use the Spm measure here because it is quite sensitive to genes being expresse
 
 ```{r, warning = FALSE}
 cells <- colnames(sc) |> unique() |> sort()
-specificity <- apply(sc |> log1p(), 1, LittleBites::Spm)
+specificity <- apply(sc |> log1p(), 1, LittleBites::max_spm)
 ```
 
 Curate a List of Potential Contaminant Cell Types to Remove

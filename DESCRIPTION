@@ -1,7 +1,7 @@
 Package: LittleBites
 Type: Package
 Title: cleans bulk RNA-seq samples using a single cell reference
-Version: 0.1.2
+Version: 0.3.0
 Author: Alec Barrett
 Maintainer: Aec Barrett <alecpbarrett@gmail.com>
 Description: 

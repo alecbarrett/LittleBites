@@ -96,7 +96,7 @@ subtraction <- function(bulk,
       if(i==0){
         bulk_deconv_target <- bulk[,bulk_sample] ## some steps required a dataframe
         names(bulk_deconv_target) <- rownames(bulk)
-        starting_auc <- calc_bulk_auc_one_sample(bulk_deconv_target,
+        starting_auc <- calc_bulk_auc_one_sample_fast(bulk_deconv_target,
                                                  bulk_sample,
                                                  training_matrix,
                                                  training_genes = rownames(training_matrix),
@@ -146,7 +146,7 @@ subtraction <- function(bulk,
 
 
         bulk_deconv_target <- bulk_deconv_target[[1]]
-        if(verbose){print(c('subtracted ', calc_bulk_auc_one_sample(bulk_deconv_target,
+        if(verbose){print(c('subtracted ', calc_bulk_auc_one_sample_fast(bulk_deconv_target,
                                                                     bulk_sample,
                                                                     training_matrix,
                                                                     training_genes = rownames(training_matrix),
@@ -155,7 +155,7 @@ subtraction <- function(bulk,
 
 
 
-        post_auc <- calc_bulk_auc_one_sample(bulk_deconv_target,
+        post_auc <- calc_bulk_auc_one_sample_fast(bulk_deconv_target,
                                              bulk_sample,
                                              training_matrix,
                                              training_genes = rownames(training_matrix),
@@ -288,7 +288,7 @@ get_best_LR_single_log <- function(bulk_vector,
   })
 
   auc_list <- lapply(bulk_deconv_list, function(bulk_subtracted){ ## for all elements in bulk_deconv_list, calculate their AUC
-    auc_add <- calc_bulk_auc_one_sample(bulk_subtracted,
+    auc_add <- calc_bulk_auc_one_sample_fast(bulk_subtracted,
                                         sample_name,
                                         training_matrix,
                                         training_genes = rownames(training_matrix),

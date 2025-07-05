@@ -58,7 +58,7 @@ test_that("function produces consistent results", {
                          training_matrix = gt_train_valid,
                          sample_name_separator = 'r',
                          specificity_weights = specificity,
-                         verbose = Fs)
+                         verbose = F)
   result2 <- subtraction(bulk = bulk_valid,
                          reference = reference_valid,
                          cell_types_matrix = cell_types_matrix,

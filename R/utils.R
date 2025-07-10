@@ -122,106 +122,61 @@ calc_bulk_auc_one_sample <- function(bulk_vector,
 }
 
 
-# fast auc calculation functions for littlebites algorithm
-# these functions provide significant speedup while maintaining identical results
+# fast sorted auc calculation for littlebites algorithm
+# this approach is much faster than threshold-based methods
 
-#' vectorized tpr calculation for multiple thresholds
+#' fast auc calculation using sorted approach
 #'
 #' @param expression vector of expression values
 #' @param truth vector of ground truth (0/1 or logical)
-#' @param thresholds vector of threshold values
-#'
-#' @return vector of tpr values for each threshold
-#'
-#' @export
-#'
-get_tpr_vectorized <- function(expression, truth, thresholds) {
-  # convert to matrix: genes x thresholds
-  n_genes <- length(expression)
-  n_thresholds <- length(thresholds)
-  
-  # create matrices for vectorized comparison
-  expr_matrix <- matrix(expression, nrow = n_genes, ncol = n_thresholds)
-  thresh_matrix <- matrix(thresholds, nrow = n_genes, ncol = n_thresholds, byrow = TRUE)
-  
-  # vectorized binary classification
-  bin_matrix <- expr_matrix >= thresh_matrix
-  
-  # vectorized tpr calculation
-  P <- sum(truth)
-  if (P == 0) return(rep(0, n_thresholds))
-  
-  TPR <- colSums(bin_matrix * truth) / P
-  return(TPR)
-}
-
-#' vectorized fpr calculation for multiple thresholds
-#'
-#' @param expression vector of expression values
-#' @param truth vector of ground truth (0/1 or logical)
-#' @param thresholds vector of threshold values
-#'
-#' @return vector of fpr values for each threshold
-#'
-#' @export
-#'
-get_fpr_vectorized <- function(expression, truth, thresholds) {
-  # convert to matrix: genes x thresholds
-  n_genes <- length(expression)
-  n_thresholds <- length(thresholds)
-  
-  # create matrices for vectorized comparison
-  expr_matrix <- matrix(expression, nrow = n_genes, ncol = n_thresholds)
-  thresh_matrix <- matrix(thresholds, nrow = n_genes, ncol = n_thresholds, byrow = TRUE)
-  
-  # vectorized binary classification
-  bin_matrix <- expr_matrix >= thresh_matrix
-  
-  # vectorized fpr calculation
-  N <- sum(!truth)
-  if (N == 0) return(rep(0, n_thresholds))
-  
-  FPR <- colSums(bin_matrix * (!truth)) / N
-  return(FPR)
-}
-
-#' fast auc calculation using vectorized threshold processing
-#'
-#' @param expression vector of expression values
-#' @param truth vector of ground truth (0/1 or logical)
-#' @param threshold_list vector of thresholds to use
 #'
 #' @return auc value
 #'
 #' @export
 #'
-calc_auc_fast <- function(expression, truth, threshold_list = c(0, seq(0, 15, 0.1))) {
+calc_auc_fast <- function(expression, truth) {
   # handle edge cases
   if (length(expression) != length(truth)) {
     stop('expression and truth vectors must be the same length')
   }
-  
+
   if (sum(truth) == 0 || sum(truth) == length(truth)) {
     return(0.5)  # no discrimination possible
   }
-  
-  # vectorized tpr/fpr calculation
-  TPR <- get_tpr_vectorized(expression, truth, threshold_list)
-  FPR <- get_fpr_vectorized(expression, truth, threshold_list)
-  
-  # use bayestestR::auc exactly like the original
-  auc <- bayestestR::auc(rev(FPR), rev(TPR), method = 'trap')
-  
+
+  # sort by expression values (descending for proper auc calculation)
+  ord <- order(expression, decreasing = TRUE)
+  truth_sorted <- truth[ord]
+
+  # calculate cumulative tp and fp
+  P <- sum(truth)
+  N <- length(truth) - P
+
+  TP <- cumsum(truth_sorted)
+  FP <- cumsum(!truth_sorted)
+
+  # calculate tpr and fpr
+  TPR <- TP / P
+  FPR <- FP / N
+
+  # add (0,0) point at the beginning
+  TPR <- c(0, TPR)
+  FPR <- c(0, FPR)
+
+  # calculate auc using trapezoidal rule
+  # this is equivalent to integrating the roc curve
+  auc <- sum(diff(FPR) * (TPR[-1] + TPR[-length(TPR)]) / 2)
+
   return(auc)
 }
 
-#' fast bulk auc calculation for a single sample
+#' fast bulk auc calculation using sorted approach
 #'
 #' @param bulk_vector a vector of gene expression in the sample (with named entries)
 #' @param sample_name a character vector, the name of a sample being processed
 #' @param training_matrix a genes x cell-types ground truth matrix
 #' @param training_genes a vector of gene names to calculate the auc with
-#' @param threshold_list a vector of values to threshold the gene expression dataset
+#' @param threshold_list not used in sorted approach (for compatibility)
 #' @param sep a character value to split the cell type from the replicate number
 #'
 #' @return roc-auc value for this bulk sample
@@ -229,31 +184,27 @@ calc_auc_fast <- function(expression, truth, threshold_list = c(0, seq(0, 15, 0.
 #' @export
 #'
 calc_bulk_auc_one_sample_fast <- function(bulk_vector,
-                                         sample_name,
-                                         training_matrix,
-                                         training_genes,
-                                         threshold_list = c(0, seq(0, 15, 0.1)),
-                                         sep = 'r') {
-  
+                                          sample_name,
+                                          training_matrix,
+                                          training_genes,
+                                          threshold_list = NULL,
+                                          sep = 'r') {
+
   # extract cell type from sample name
   cell_type <- stringr::str_split_fixed(sample_name, sep, 2)[,1]
-  
+
   # log transform and subset
   dcnt <- log1p(bulk_vector)
   names(dcnt) <- names(bulk_vector)
   dcnt <- dcnt[training_genes]
-  
+
   # get ground truth
   train_bulk <- training_matrix[training_genes,]
   train_bulk_single <- train_bulk[,cell_type]
   names(train_bulk_single) <- rownames(train_bulk)
-  
-  # use fast vectorized auc calculation
-  bulk_auc <- calc_auc_fast(dcnt, train_bulk_single, threshold_list)
-  
+
+  # use sorted approach for maximum speed
+  bulk_auc <- calc_auc_fast(dcnt, train_bulk_single)
+
   return(bulk_auc)
 }
-
-
-
-

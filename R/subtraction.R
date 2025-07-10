@@ -8,6 +8,7 @@
 #' @param specificity_weights a vector of gene level weights calculated using the specificity score from the single cell reference
 #' @param learning_rate list of values to use as the learning rates: ex: 1/(2**seq(0,10,1)) returns a list of 1, 1/2, 1/4, 1/8, etc...
 #' @param max_iterations maximum number of iterations to go through
+#' @param fast_auc if true, then function will use a new faster way to calculate auc than the original implementation
 #' @param verbose if true, then the function will return information about each iteration
 #'
 #' @return a matrix of cleaned bulk expression
@@ -24,6 +25,7 @@ subtraction <- function(bulk,
                         specificity_weights,
                         learning_rate = c(0, seq(1/(2**seq(0,10,1)))),
                         max_iterations = 100,
+                        fast_auc = T,
                         verbose = T){
 
   if(sample_name_separator == ''){
@@ -96,11 +98,22 @@ subtraction <- function(bulk,
       if(i==0){
         bulk_deconv_target <- bulk[,bulk_sample] ## some steps required a dataframe
         names(bulk_deconv_target) <- rownames(bulk)
-        starting_auc <- calc_bulk_auc_one_sample_fast(bulk_deconv_target,
-                                                 bulk_sample,
-                                                 training_matrix,
-                                                 training_genes = rownames(training_matrix),
-                                                 sep = sample_name_separator)
+        if(fast_auc){
+          starting_auc <- calc_bulk_auc_one_sample_fast(bulk_deconv_target,
+                                                        bulk_sample,
+                                                        training_matrix,
+                                                        training_genes = rownames(training_matrix),
+                                                        sep = sample_name_separator)
+
+        }else{
+          print(1)
+          starting_auc <- calc_bulk_auc_one_sample(bulk_deconv_target,
+                                                        bulk_sample,
+                                                        training_matrix,
+                                                        training_genes = rownames(training_matrix),
+                                                        sep = sample_name_separator)
+
+        }
 
         pre_auc <- starting_auc
 
@@ -142,24 +155,47 @@ subtraction <- function(bulk,
                                                      proportions_table = data.frame(estimates),
                                                      LR_list = learning_rate,
                                                      specificity_score = specificity_weights_use,
-                                                     sample_name_separator = sample_name_separator)
+                                                     sample_name_separator = sample_name_separator,
+                                                     fast_auc = fast_auc)
 
 
         bulk_deconv_target <- bulk_deconv_target[[1]]
-        if(verbose){print(c('subtracted ', calc_bulk_auc_one_sample_fast(bulk_deconv_target,
-                                                                    bulk_sample,
-                                                                    training_matrix,
-                                                                    training_genes = rownames(training_matrix),
-                                                                    sep = sample_name_separator)))}
+        if(verbose){
+
+          if(fast_auc){
+            auroc <- calc_bulk_auc_one_sample_fast(bulk_deconv_target,
+                                                   bulk_sample,
+                                                   training_matrix,
+                                                   training_genes = rownames(training_matrix),
+                                                   sep = sample_name_separator)
+
+          }else{
+            auroc <- calc_bulk_auc_one_sample(bulk_deconv_target,
+                                                   bulk_sample,
+                                                   training_matrix,
+                                                   training_genes = rownames(training_matrix),
+                                                   sep = sample_name_separator)
+          }
+
+          print(c('subtracted ', auroc))}
 
 
 
+        if(fast_auc){
+          post_auc <- calc_bulk_auc_one_sample_fast(bulk_deconv_target,
+                                                    bulk_sample,
+                                                    training_matrix,
+                                                    training_genes = rownames(training_matrix),
+                                                    sep = sample_name_separator)
 
-        post_auc <- calc_bulk_auc_one_sample_fast(bulk_deconv_target,
-                                             bulk_sample,
-                                             training_matrix,
-                                             training_genes = rownames(training_matrix),
-                                             sep = sample_name_separator)
+        }else{
+          post_auc <- calc_bulk_auc_one_sample(bulk_deconv_target,
+                                                    bulk_sample,
+                                                    training_matrix,
+                                                    training_genes = rownames(training_matrix),
+                                                    sep = sample_name_separator)
+
+        }
 
         if(verbose){print(c(i, post_auc))}
 
@@ -242,6 +278,7 @@ subtract_single_log <- function(learning_rate,
 #' @param LR_list list of values to use as the learning rates: ex: 1/(2**seq(0,10,1)) returns a list of 1, 1/2, 1/4, 1/8, etc...
 #' @param specificity_score a vector of gene level weights calculated using the specificity score from the single cell reference
 #' @param sample_name_separator a character value to split the cell type from the replicate number in the sample name (assumed structure is cell-sample_name_separator-number)
+#' @param fast_auc if true, then function will use a new faster way to calculate auc than the original implementation
 #'
 #' @return a vector of gene expression values, named by the genes
 #'
@@ -257,7 +294,8 @@ get_best_LR_single_log <- function(bulk_vector,
                                    proportions_table,
                                    LR_list,
                                    specificity_score,
-                                   sample_name_separator = 'r'){
+                                   sample_name_separator = 'r',
+                                   fast_auc = TRUE){
 
   # take a list of learning rates, and find the best one as defined by the one with the highest AUC value
   ## bulk = vector of gene values for a single sample
@@ -287,12 +325,24 @@ get_best_LR_single_log <- function(bulk_vector,
 
   })
 
-  auc_list <- lapply(bulk_deconv_list, function(bulk_subtracted){ ## for all elements in bulk_deconv_list, calculate their AUC
-    auc_add <- calc_bulk_auc_one_sample_fast(bulk_subtracted,
-                                        sample_name,
-                                        training_matrix,
-                                        training_genes = rownames(training_matrix),
-                                        sep = sample_name_separator)
+  auc_list <- lapply(bulk_deconv_list, function(bulk_subtracted){
+    ## for all elements in bulk_deconv_list, calculate their AUC
+
+    if(fast_auc){
+      auc_add <- calc_bulk_auc_one_sample_fast(bulk_subtracted,
+                                               sample_name,
+                                               training_matrix,
+                                               training_genes = rownames(training_matrix),
+                                               sep = sample_name_separator)
+
+    }else{
+      auc_add <- calc_bulk_auc_one_sample(bulk_subtracted,
+                                               sample_name,
+                                               training_matrix,
+                                               training_genes = rownames(training_matrix),
+                                               sep = sample_name_separator)
+
+    }
     return(auc_add)
   })
   best_LR <- which(unlist(auc_list) == max(unlist(auc_list)), arr.ind = TRUE)

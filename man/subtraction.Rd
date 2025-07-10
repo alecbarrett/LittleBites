@@ -13,6 +13,7 @@ subtraction(
   specificity_weights,
   learning_rate = c(0, seq(1/(2^seq(0, 10, 1)))),
   max_iterations = 100,
+  fast_auc = T,
   verbose = T
 )
 }
@@ -32,6 +33,8 @@ subtraction(
 \item{learning_rate}{list of values to use as the learning rates: ex: 1/(2**seq(0,10,1)) returns a list of 1, 1/2, 1/4, 1/8, etc...}
 
 \item{max_iterations}{maximum number of iterations to go through}
+
+\item{fast_auc}{if true, then function will use a new faster way to calculate auc than the original implementation}
 
 \item{verbose}{if true, then the function will return information about each iteration}
 }

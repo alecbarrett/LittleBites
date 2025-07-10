@@ -2,14 +2,14 @@
 % Please edit documentation in R/utils.R
 \name{calc_bulk_auc_one_sample_fast}
 \alias{calc_bulk_auc_one_sample_fast}
-\title{fast bulk auc calculation for a single sample}
+\title{fast bulk auc calculation using sorted approach}
 \usage{
 calc_bulk_auc_one_sample_fast(
   bulk_vector,
   sample_name,
   training_matrix,
   training_genes,
-  threshold_list = c(0, seq(0, 15, 0.1)),
+  threshold_list = NULL,
   sep = "r"
 )
 }
@@ -22,7 +22,7 @@ calc_bulk_auc_one_sample_fast(
 
 \item{training_genes}{a vector of gene names to calculate the auc with}
 
-\item{threshold_list}{a vector of values to threshold the gene expression dataset}
+\item{threshold_list}{not used in sorted approach (for compatibility)}
 
 \item{sep}{a character value to split the cell type from the replicate number}
 }
@@ -30,5 +30,5 @@ calc_bulk_auc_one_sample_fast(
 roc-auc value for this bulk sample
 }
 \description{
-fast bulk auc calculation for a single sample
+fast bulk auc calculation using sorted approach
 }

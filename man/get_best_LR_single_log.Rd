@@ -15,7 +15,8 @@ get_best_LR_single_log(
   proportions_table,
   LR_list,
   specificity_score,
-  sample_name_separator = "r"
+  sample_name_separator = "r",
+  fast_auc = TRUE
 )
 }
 \arguments{
@@ -40,6 +41,8 @@ get_best_LR_single_log(
 \item{specificity_score}{a vector of gene level weights calculated using the specificity score from the single cell reference}
 
 \item{sample_name_separator}{a character value to split the cell type from the replicate number in the sample name (assumed structure is cell-sample_name_separator-number)}
+
+\item{fast_auc}{if true, then function will use a new faster way to calculate auc than the original implementation}
 }
 \value{
 a vector of gene expression values, named by the genes

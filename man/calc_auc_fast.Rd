@@ -2,20 +2,18 @@
 % Please edit documentation in R/utils.R
 \name{calc_auc_fast}
 \alias{calc_auc_fast}
-\title{fast auc calculation using vectorized threshold processing}
+\title{fast auc calculation using sorted approach}
 \usage{
-calc_auc_fast(expression, truth, threshold_list = c(0, seq(0, 15, 0.1)))
+calc_auc_fast(expression, truth)
 }
 \arguments{
 \item{expression}{vector of expression values}
 
 \item{truth}{vector of ground truth (0/1 or logical)}
-
-\item{threshold_list}{vector of thresholds to use}
 }
 \value{
 auc value
 }
 \description{
-fast auc calculation using vectorized threshold processing
+fast auc calculation using sorted approach
 }

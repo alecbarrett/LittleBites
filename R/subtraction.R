@@ -106,7 +106,6 @@ subtraction <- function(bulk,
                                                         sep = sample_name_separator)
 
         }else{
-          print(1)
           starting_auc <- calc_bulk_auc_one_sample(bulk_deconv_target,
                                                         bulk_sample,
                                                         training_matrix,
